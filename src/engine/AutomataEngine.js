@@ -13,6 +13,7 @@ export class AutomataEngine {
 
         this.generation = 0;
         this.population = 0;
+        this.history = [];
         this.setRule("CONWAY");
         this.randomize();
     }
@@ -45,6 +46,7 @@ export class AutomataEngine {
             buf[i] = Math.random() < density ? 1 : 0;
         }
         this.generation = 0;
+        this.history = [];
         this._countPopulation();
     }
 
@@ -53,6 +55,7 @@ export class AutomataEngine {
         this.buffers[1].fill(0);
         this.generation = 0;
         this.population = 0;
+        this.history = [];
     }
 
     getIndex(x, y) {
@@ -111,6 +114,14 @@ export class AutomataEngine {
         const w = this.width;
         const h = this.height;
 
+        if (!this.history) this.history = [];
+        this.history.push({
+            grid: new Uint8Array(readBuf),
+            gen: this.generation,
+            pop: this.population
+        });
+        if (this.history.length > 100) this.history.shift();
+
         // Use a Set for O(1) lookups instead of .includes()
         const bornSet = new Set(this.born);
         const surviveSet = new Set(this.survive);
@@ -140,5 +151,13 @@ export class AutomataEngine {
         this.writeIndex = 1 - this.writeIndex;
         this.generation++;
         this.population = pop;
+    }
+
+    rewind() {
+        if (!this.history || this.history.length === 0) return;
+        const lastState = this.history.pop();
+        this.buffers[this.readIndex].set(lastState.grid);
+        this.generation = lastState.gen;
+        this.population = lastState.pop;
     }
 }

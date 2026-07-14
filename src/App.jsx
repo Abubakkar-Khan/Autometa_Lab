@@ -4,7 +4,8 @@ import { LearnPage } from './components/LearnPage';
 import { AutomataEngine } from './engine/AutomataEngine';
 import { 
     Play, Pause, Edit2, Eraser, SprayCan, Trash2, 
-    Shuffle, BookOpen, Target, SkipForward, ChevronRight
+    Shuffle, BookOpen, Target, SkipForward, ChevronRight,
+    Activity, Users, Hash, RotateCcw, Smile
 } from 'lucide-react';
 import './index.css';
 
@@ -15,6 +16,8 @@ function App() {
     const [isPlaying, setIsPlaying] = useState(true);
     const [activeRule, setActiveRule] = useState("CONWAY");
     const [activeBrush, setActiveBrush] = useState("PENCIL");
+    const [speedMultiplier, setSpeedMultiplier] = useState(1);
+    const [isCuteMode, setIsCuteMode] = useState(false);
     const [stats, setStats] = useState({ gen: 0, pop: 0 });
     const [panelOpen, setPanelOpen] = useState(true);
     const canvasRef = useRef(null);
@@ -55,18 +58,21 @@ function App() {
             <header className="topbar">
                 <div className="topbar-left">
                     <h1 className="logo">AUTOMETA</h1>
-                    <span className="logo-sub">SKETCH</span>
+                    <span className="logo-sub">LAB</span>
                 </div>
                 <div className="topbar-center">
                     <div className="stat-pill">
+                        <Activity size={14} className="stat-icon" />
                         <span className="stat-label">GEN</span>
                         <span className="stat-value">{stats.gen}</span>
                     </div>
                     <div className="stat-pill">
+                        <Users size={14} className="stat-icon" />
                         <span className="stat-label">POP</span>
                         <span className="stat-value">{stats.pop}</span>
                     </div>
                     <div className="stat-pill accent">
+                        <Hash size={14} className="stat-icon" />
                         <span className="stat-label">RULE</span>
                         <span className="stat-value">{activeRule}</span>
                     </div>
@@ -82,15 +88,25 @@ function App() {
             <main className="main-area">
                 {/* Canvas */}
                 <div className="playground">
-                    <Canvas isPlaying={isPlaying} onStats={setStats} ref={canvasRef} />
+                    <Canvas isPlaying={isPlaying} onStats={setStats} speedMultiplier={speedMultiplier} isCuteMode={isCuteMode} ref={canvasRef} />
 
                     {/* Floating toolbar at bottom center */}
                     <div className="floating-toolbar">
                         <button className={`ftb ${isPlaying ? 'active' : ''}`} onClick={() => setIsPlaying(!isPlaying)} title={isPlaying ? "Pause" : "Play"}>
                             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
                         </button>
+                        <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.rewind(); }} title="Rewind">
+                            <RotateCcw size={18} />
+                        </button>
                         <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.stepOnce(); }} title="Step once">
                             <SkipForward size={18} />
+                        </button>
+                        <button className="ftb" style={{ fontWeight: 900, fontSize: '0.75rem', width: 'auto', padding: '0 8px' }} onClick={() => setSpeedMultiplier(s => s === 1 ? 2 : s === 2 ? 4 : s === 4 ? 0.5 : 1)} title="Speed">
+                            {speedMultiplier}x
+                        </button>
+                        <div className="ftb-divider" />
+                        <button className={`ftb ${isCuteMode ? 'active' : ''}`} onClick={() => setIsCuteMode(!isCuteMode)} title="Cute Mode">
+                            <Smile size={18} />
                         </button>
                         <div className="ftb-divider" />
                         <button className={`ftb ${activeBrush === "PENCIL" ? 'active' : ''}`} onClick={() => handleBrushChange("PENCIL")} title="Pencil">

@@ -1,4 +1,4 @@
-# AUTOMETA
+# AUTOMETA LAB
 
 **The Ultimate Generative Cellular Automata Playground**
 
@@ -26,7 +26,7 @@ Autometa transforms Conway's Game of Life from a sterile simulation into a tacti
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  AUTOMETA SKETCH    GEN: 1247  POP: 832  RULE: CONWAY  │
+│  AUTOMETA LAB       GEN: 1247  POP: 832  RULE: CONWAY  │
 ├───────────────────────────────────────────┬──────────┤
 │                                           │  RULES   │
 │           ╔══╗  ╔══╗                      │  ──────  │

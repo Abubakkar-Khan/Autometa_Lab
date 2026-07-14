@@ -88,18 +88,18 @@ const BeforeAfterDiagram = () => {
 
 /* ─── Rule data with patterns ─── */
 const RULE_DATA = [
-    { key: "CONWAY",      name: "Conway's Game of Life", pattern: ".O.\n..O\nOOO",           patternLabel: "Glider" },
-    { key: "HIGHLIFE",    name: "HighLife",              pattern: "...O..\n.O.O..\n..OO..\n......",  patternLabel: "Replicator" },
-    { key: "SEEDS",       name: "Seeds",                 pattern: "OO\n..\n..\nOO",             patternLabel: "Explosive" },
-    { key: "DAY & NIGHT", name: "Day & Night",           pattern: "OOO\nO.O\nOOO",             patternLabel: "Block" },
-    { key: "MAZE",        name: "Maze",                  pattern: ".O.\n..O\nOOO",             patternLabel: "Seed" },
-    { key: "ANNEAL",      name: "Anneal",                pattern: "OOO\nO.O\nOOO",             patternLabel: "Ring" },
-    { key: "CORAL",       name: "Coral",                 pattern: "OO\nOO",                     patternLabel: "Block" },
-    { key: "DIAMOEBA",    name: "Diamoeba",              pattern: "..O..\n.OOO.\nOOOOO\n.OOO.\n..O..", patternLabel: "Diamond" },
-    { key: "REPLICATOR",  name: "Replicator",            pattern: "OOO\nO..\nO..",             patternLabel: "Corner" },
-    { key: "2x2",         name: "2×2",                   pattern: "OO\nOO",                     patternLabel: "Block" },
-    { key: "MOVE",        name: "Move",                  pattern: ".O.\n..O\nOOO",             patternLabel: "Glider" },
-    { key: "FLOCK",       name: "Flock",                 pattern: ".O.\n..O\nOOO",             patternLabel: "Seed" },
+    { key: "CONWAY",      name: "Conway's Game of Life", pattern: ".O.\n..O\nOOO",           patternLabel: "Glider", details: "Invented by John Conway in 1970, this is the most famous cellular automaton. It perfectly balances chaos and order, creating complex spaceships, oscillators, and stable forms. It is computationally Turing-complete." },
+    { key: "HIGHLIFE",    name: "HighLife",              pattern: "...O\n..O.\n.O..\nO...",  patternLabel: "Replicator", details: "Similar to Conway's Game of Life, but with an extra birth condition at 6 neighbors. This seemingly minor tweak gives rise to spectacular self-replicating patterns." },
+    { key: "SEEDS",       name: "Seeds",                 pattern: "OO\n..\n..\nOO",             patternLabel: "Explosive", details: "Cells never survive; they only burst into existence when surrounded by exactly 2 neighbors. Every pattern expands outward like an explosive shockwave, often growing infinitely." },
+    { key: "DAY & NIGHT", name: "Day & Night",           pattern: "OOOOO\nO...O\nO...O\nO...O\nOOOOO", patternLabel: "Ring", details: "This rule is symmetric: if you invert all dead and alive cells, the universe evolves in exactly the same way. It is characterized by shifting, bubbling pools of 'day' and 'night'." },
+    { key: "MAZE",        name: "Maze",                  pattern: "OOO",                       patternLabel: "Seed", details: "Cells survive very easily (1 to 5 neighbors) but are only born with exactly 3. This causes patterns to solidify into intricate, branching, crystalline mazes that expand until the grid is filled." },
+    { key: "ANNEAL",      name: "Anneal",                pattern: "O.O.O\n.O.O.\nO.O.O",       patternLabel: "Noise", details: "Also known as the 'Majority' rule, this mimics the physical process of annealing or surface tension. A chaotic starting grid rapidly smooths out into stable pools and bubbles." },
+    { key: "CORAL",       name: "Coral",                 pattern: ".O.\nOOO\n.O.",             patternLabel: "Cross", details: "Growth is extremely slow and happens only at the edges of the structure. It forms dense, jagged, fractal-like patterns resembling a growing coral reef." },
+    { key: "DIAMOEBA",    name: "Diamoeba",              pattern: "OOOO\nO..O\nO..O\nOOOO",    patternLabel: "Hollow", details: "Creates large, shifting, amoeba-like blobs with solid diamond-shaped boundaries. The patterns fluctuate unpredictably but rarely die out completely." },
+    { key: "REPLICATOR",  name: "Replicator",            pattern: "OOO\nO..\nO..",             patternLabel: "Corner", details: "An extraordinary automaton created by Edward Fredkin. Every single pattern, no matter how complex, will eventually create infinite copies of itself. It is a mathematical guarantee." },
+    { key: "2x2",         name: "2×2",                   pattern: "OOO\nO..\nO..",             patternLabel: "Corner", details: "Patterns tend to form stable or oscillating blocks made of 2×2 squares. It is heavily biased towards rigid, grid-aligned structures and spaceships." },
+    { key: "MOVE",        name: "Move",                  pattern: "O.O\nO..\nOOO",             patternLabel: "Spaceship", details: "A rule designed specifically to encourage movement. While it does not support large static structures, it is incredibly rich with tiny gliders, spaceships, and oscillating travelers." },
+    { key: "FLOCK",       name: "Flock",                 pattern: ".OO\nO.O\nO..",             patternLabel: "Glider", details: "Mimics flocking behavior. Structures glide and crash into each other violently, usually destroying themselves quickly. It is highly volatile and rarely forms stable endpoints." },
 ];
 
 export const LearnPage = ({ onClose, onTryPattern }) => {
@@ -142,9 +142,9 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                     <div className="step">
                         <div className="step-number">2</div>
                         <div className="step-content">
-                            <h3>COUNT THE NEIGHBORS</h3>
+                            <h3>COUNT THE 8 NEIGHBORS</h3>
                             <p>
-                                For every cell, count its 8 surrounding neighbors. The center cell (marked <strong>?</strong>) looks at the ring around it to decide its fate.
+                                For every cell, count its <strong>8 surrounding neighbors</strong> (top, bottom, left, right, and 4 diagonals). The center cell (marked <strong>?</strong>) looks at the ring around it to decide its fate.
                             </p>
                             <div className="step-diagram">
                                 <NeighborDiagram />
@@ -185,7 +185,8 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                                     <h3>{rd.name}</h3>
                                     <span className="rule-notation">{info.label}</span>
                                 </div>
-                                <p>{info.desc}</p>
+                                <p style={{ color: 'var(--text)', fontWeight: 600 }}>{info.desc}</p>
+                                <p style={{ fontSize: '0.85rem', lineHeight: '1.6', marginTop: '-0.25rem' }}>{rd.details}</p>
                                 <div className="card-bottom">
                                     <div>
                                         <PatternDiagram patternString={rd.pattern} />

@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react
 import rough from 'roughjs/bundled/rough.esm.js';
 import { AutomataEngine } from '../engine/AutomataEngine';
 
-export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
+export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isCuteMode = false }, ref) => {
     const canvasRef = useRef(null);
     const engineRef = useRef(null);
     const reqRef = useRef(null);
     const isPlayingRef = useRef(isPlaying);
+    const speedRef = useRef(speedMultiplier);
+    const isCuteModeRef = useRef(isCuteMode);
     
     const brushType = useRef("PENCIL");
     const CELL_SIZE = 20;
@@ -37,10 +39,18 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
                 engineRef.current.step();
                 if (onStats) onStats({ gen: engineRef.current.generation, pop: engineRef.current.population });
             }
+        },
+        rewind: () => {
+            if (engineRef.current) {
+                engineRef.current.rewind();
+                if (onStats) onStats({ gen: engineRef.current.generation, pop: engineRef.current.population });
+            }
         }
     }));
 
     useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+    useEffect(() => { speedRef.current = speedMultiplier; }, [speedMultiplier]);
+    useEffect(() => { isCuteModeRef.current = isCuteMode; }, [isCuteMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -65,7 +75,7 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
 
         let lastTime = performance.now();
         let accumulator = 0;
-        const SIMULATION_STEP = 150;
+        const BASE_SIMULATION_STEP = 150;
 
         const drawGrid = () => {
             const ctx = canvas.getContext('2d');
@@ -84,6 +94,7 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
             const grid = engineRef.current.getGrid();
             const w = engineRef.current.width;
             const h = engineRef.current.height;
+            const colors = ['#e31837', '#ffb800', '#00b050', '#0070c0', '#9900cc', '#ff66cc'];
             
             for (let y = 0; y < h; y++) {
                 for (let x = 0; x < w; x++) {
@@ -92,15 +103,44 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
                         const py = (y * CELL_SIZE) + panY.current;
                         
                         if (px > -CELL_SIZE && px < canvas.width && py > -CELL_SIZE && py < canvas.height) {
-                            rc.rectangle(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, {
-                                fill: 'black',
-                                fillStyle: 'hachure',
-                                roughness: 1.5,
-                                strokeWidth: 1,
-                                hachureAngle: 60,
-                                hachureGap: 3.5,
-                                seed: x * 1000 + y // Stable seed so cells don't flicker
-                            });
+                            if (isCuteModeRef.current) {
+                                const cIndex = (x * 13 + y * 7) % colors.length;
+                                rc.rectangle(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, {
+                                    fill: colors[cIndex],
+                                    fillStyle: 'hachure',
+                                    roughness: 2,
+                                    strokeWidth: 1,
+                                    seed: x * 1000 + y
+                                });
+                                ctx.fillStyle = 'white';
+                                ctx.beginPath();
+                                ctx.arc(px + CELL_SIZE * 0.3, py + CELL_SIZE * 0.35, 2.5, 0, Math.PI * 2);
+                                ctx.arc(px + CELL_SIZE * 0.7, py + CELL_SIZE * 0.35, 2.5, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.fillStyle = 'black';
+                                ctx.beginPath();
+                                ctx.arc(px + CELL_SIZE * 0.3, py + CELL_SIZE * 0.35, 1, 0, Math.PI * 2);
+                                ctx.arc(px + CELL_SIZE * 0.7, py + CELL_SIZE * 0.35, 1, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.strokeStyle = 'black';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(px - 1, py + CELL_SIZE * 0.6);
+                                ctx.lineTo(px + 3, py + CELL_SIZE * 0.7);
+                                ctx.moveTo(px + CELL_SIZE + 1, py + CELL_SIZE * 0.6);
+                                ctx.lineTo(px + CELL_SIZE - 3, py + CELL_SIZE * 0.7);
+                                ctx.stroke();
+                            } else {
+                                rc.rectangle(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, {
+                                    fill: 'black',
+                                    fillStyle: 'hachure',
+                                    roughness: 1.5,
+                                    strokeWidth: 1,
+                                    hachureAngle: 60,
+                                    hachureGap: 3.5,
+                                    seed: x * 1000 + y
+                                });
+                            }
                         }
                     }
                 }
@@ -114,9 +154,10 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
             
             if (isPlayingRef.current) {
                 accumulator += dt;
-                while (accumulator >= SIMULATION_STEP) {
+                const currentStep = BASE_SIMULATION_STEP / speedRef.current;
+                while (accumulator >= currentStep) {
                     engineRef.current.step();
-                    accumulator -= SIMULATION_STEP;
+                    accumulator -= currentStep;
                     if (onStats) {
                         onStats({ gen: engineRef.current.generation, pop: engineRef.current.population });
                     }
@@ -177,7 +218,7 @@ export const Canvas = forwardRef(({ isPlaying, onStats }, ref) => {
     return (
         <canvas
             ref={canvasRef}
-            style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none', cursor: 'crosshair' }}
+            style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none', cursor: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'%3E%3Cpath d='M22 4 L28 10 L14 24 L6 26 L8 18 Z' fill='white' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M18 8 L24 14' fill='none' stroke='black' stroke-width='2'/%3E%3Cpath d='M6 26 L10 22 M8 18 L12 22 M7 25 L9 21' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") 6 26, crosshair` }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={() => { isPanning.current = false; }}
