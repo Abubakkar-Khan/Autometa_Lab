@@ -5,7 +5,7 @@ import { AutomataEngine } from './engine/AutomataEngine';
 import { 
     Play, Pause, Edit2, Eraser, SprayCan, Trash2, 
     Shuffle, BookOpen, Target, SkipForward, ChevronRight,
-    Activity, Users, Hash, RotateCcw, Smile
+    Activity, Users, Hash, RotateCcw, Smile, ZoomIn, ZoomOut
 } from 'lucide-react';
 import './index.css';
 
@@ -124,6 +124,13 @@ function App() {
                         </button>
                         <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.randomize(); setIsPlaying(true); }} title="Randomize">
                             <Shuffle size={18} />
+                        </button>
+                        <div className="ftb-divider" />
+                        <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.zoomOut(); }} title="Zoom Out">
+                            <ZoomOut size={18} />
+                        </button>
+                        <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.zoomIn(); }} title="Zoom In">
+                            <ZoomIn size={18} />
                         </button>
                         <button className="ftb" onClick={() => { if(canvasRef.current) canvasRef.current.centerCamera(); }} title="Center">
                             <Target size={18} />

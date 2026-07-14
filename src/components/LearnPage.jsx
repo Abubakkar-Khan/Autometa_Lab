@@ -1,16 +1,18 @@
-import React from 'react';
-import { ArrowLeft, Play } from 'lucide-react';
-import { AutomataEngine } from '../engine/AutomataEngine';
+import React, { useState } from 'react';
+import { Play } from 'lucide-react';
 
-/* ─── Tiny grid renderer ─── */
-const PatternDiagram = ({ patternString }) => {
-    const lines = patternString.trim().split('\n');
+/* ─── Helper to render mini grids in instructions ─── */
+const MiniGrid = ({ matrix, centerStyle = false }) => {
     return (
-        <div className="pattern-diagram">
-            {lines.map((line, y) => (
-                <div key={y} className="pattern-row">
-                    {line.split('').map((char, x) => (
-                        <div key={`${x}-${y}`} className={`pattern-cell ${char === 'O' ? 'alive' : ''}`} />
+        <div className="mini-grid">
+            {matrix.map((row, r) => (
+                <div key={r} className="mini-grid-row">
+                    {row.map((val, c) => (
+                        <div 
+                            key={c} 
+                            className={`mini-grid-cell ${val === 1 ? 'alive' : ''} ${centerStyle && r===1 && c===1 ? 'center' : ''}`}
+                        >
+                        </div>
                     ))}
                 </div>
             ))}
@@ -18,70 +20,18 @@ const PatternDiagram = ({ patternString }) => {
     );
 };
 
-/* ─── Neighbor diagram for step 2 ─── */
-const NeighborDiagram = () => {
-    const grid = [
-        [false, true,  false],
-        [true,  null,  true],
-        [false, true,  true],
-    ];
+/* ─── Helper to render pattern diagrams ─── */
+const PatternDiagram = ({ patternString }) => {
+    const rows = patternString.split('\n');
     return (
-        <div>
-            <div className="mini-grid">
-                {grid.map((row, y) => (
-                    <div key={y} className="mini-grid-row">
-                        {row.map((cell, x) => (
-                            <div key={x} className={`mini-grid-cell ${cell === null ? 'center' : cell ? 'alive' : ''}`}>
-                                {cell === null ? '?' : cell ? '1' : '0'}
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-            <div className="step-caption">Count alive neighbors = 4</div>
-        </div>
-    );
-};
-
-/* ─── Before/After diagram for step 3 ─── */
-const BeforeAfterDiagram = () => {
-    const before = [
-        [0,1,0],
-        [0,0,1],
-        [1,1,1],
-    ];
-    const after = [
-        [0,0,0],
-        [1,0,1],
-        [0,1,1],
-    ];
-    return (
-        <div className="step-diagram">
-            <div>
-                <div className="mini-grid">
-                    {before.map((row, y) => (
-                        <div key={y} className="mini-grid-row">
-                            {row.map((cell, x) => (
-                                <div key={x} className={`mini-grid-cell ${cell ? 'alive' : ''}`} />
-                            ))}
-                        </div>
+        <div className="pattern-diagram">
+            {rows.map((row, r) => (
+                <div key={r} className="pattern-row">
+                    {row.split('').map((char, c) => (
+                        <div key={c} className={`pattern-cell ${char === 'O' ? 'alive' : ''}`}></div>
                     ))}
                 </div>
-                <div className="step-caption">Before</div>
-            </div>
-            <span className="step-arrow">→</span>
-            <div>
-                <div className="mini-grid">
-                    {after.map((row, y) => (
-                        <div key={y} className="mini-grid-row">
-                            {row.map((cell, x) => (
-                                <div key={x} className={`mini-grid-cell ${cell ? 'alive' : ''}`} />
-                            ))}
-                        </div>
-                    ))}
-                </div>
-                <div className="step-caption">After (1 step)</div>
-            </div>
+            ))}
         </div>
     );
 };
@@ -89,52 +39,48 @@ const BeforeAfterDiagram = () => {
 /* ─── Rule data with patterns ─── */
 const RULE_DATA = [
     { key: "CONWAY",      name: "Conway's Game of Life", pattern: ".O.\n..O\nOOO",           patternLabel: "Glider", details: "Invented by John Conway in 1970, this is the most famous cellular automaton. It perfectly balances chaos and order, creating complex spaceships, oscillators, and stable forms. It is computationally Turing-complete." },
-    { key: "HIGHLIFE",    name: "HighLife",              pattern: "...O\n..O.\n.O..\nO...",  patternLabel: "Replicator", details: "Similar to Conway's Game of Life, but with an extra birth condition at 6 neighbors. This seemingly minor tweak gives rise to spectacular self-replicating patterns." },
-    { key: "SEEDS",       name: "Seeds",                 pattern: "OO\n..\n..\nOO",             patternLabel: "Explosive", details: "Cells never survive; they only burst into existence when surrounded by exactly 2 neighbors. Every pattern expands outward like an explosive shockwave, often growing infinitely." },
-    { key: "DAY & NIGHT", name: "Day & Night",           pattern: "OOOOO\nO...O\nO...O\nO...O\nOOOOO", patternLabel: "Ring", details: "This rule is symmetric: if you invert all dead and alive cells, the universe evolves in exactly the same way. It is characterized by shifting, bubbling pools of 'day' and 'night'." },
     { key: "MAZE",        name: "Maze",                  pattern: "OOO",                       patternLabel: "Seed", details: "Cells survive very easily (1 to 5 neighbors) but are only born with exactly 3. This causes patterns to solidify into intricate, branching, crystalline mazes that expand until the grid is filled." },
-    { key: "ANNEAL",      name: "Anneal",                pattern: "O.O.O\n.O.O.\nO.O.O",       patternLabel: "Noise", details: "Also known as the 'Majority' rule, this mimics the physical process of annealing or surface tension. A chaotic starting grid rapidly smooths out into stable pools and bubbles." },
-    { key: "CORAL",       name: "Coral",                 pattern: ".O.\nOOO\n.O.",             patternLabel: "Cross", details: "Growth is extremely slow and happens only at the edges of the structure. It forms dense, jagged, fractal-like patterns resembling a growing coral reef." },
-    { key: "DIAMOEBA",    name: "Diamoeba",              pattern: "OOOO\nO..O\nO..O\nOOOO",    patternLabel: "Hollow", details: "Creates large, shifting, amoeba-like blobs with solid diamond-shaped boundaries. The patterns fluctuate unpredictably but rarely die out completely." },
-    { key: "REPLICATOR",  name: "Replicator",            pattern: "OOO\nO..\nO..",             patternLabel: "Corner", details: "An extraordinary automaton created by Edward Fredkin. Every single pattern, no matter how complex, will eventually create infinite copies of itself. It is a mathematical guarantee." },
-    { key: "2x2",         name: "2×2",                   pattern: "OOO\nO..\nO..",             patternLabel: "Corner", details: "Patterns tend to form stable or oscillating blocks made of 2×2 squares. It is heavily biased towards rigid, grid-aligned structures and spaceships." },
-    { key: "MOVE",        name: "Move",                  pattern: "O.O\nO..\nOOO",             patternLabel: "Spaceship", details: "A rule designed specifically to encourage movement. While it does not support large static structures, it is incredibly rich with tiny gliders, spaceships, and oscillating travelers." },
-    { key: "FLOCK",       name: "Flock",                 pattern: ".OO\nO.O\nO..",             patternLabel: "Glider", details: "Mimics flocking behavior. Structures glide and crash into each other violently, usually destroying themselves quickly. It is highly volatile and rarely forms stable endpoints." },
+
+    // Advanced / Evolution
+    { key: "BRIANS_BRAIN",name: "Brian's Brain",         pattern: "O.O\n...\nO.O",             patternLabel: "Worms", details: "A 3-state automaton (Alive, Dying, Dead). A cell goes from Alive to Dying, then Dying to Dead. This forces movement in one direction, creating intricate neural pathways and crawling worms." },
+    { key: "CYCLIC",      name: "Cyclic Spirals",        pattern: "OOO\nO.O\nOOO",             patternLabel: "Spirals", details: "Features 16 distinct states! A cell only advances to the next state if it touches a neighbor that is already in the next state. The result is a mesmerizing explosion of colorful, swirling psychedelic spirals." },
+    { key: "SMOOTH_LIFE", name: "Smooth Organic",        pattern: "OOO\nOOO\nOOO",             patternLabel: "Amoebas", details: "A massive leap! This rule operates in the continuous floating-point domain (0.0 to 1.0) rather than binary. Cells blend, blur, and divide like fluid microscopic amoebas in a primordial soup." },
+    { key: "HEX_LIFE",    name: "Hexagonal Life",        pattern: ".OO\nO.O\n.OO",             patternLabel: "Snowflake", details: "Standard life rules, but evaluated on a staggered honeycomb grid. Without the sharp 90-degree bias of a square grid, the structures that grow look far more organic and crystal-like." },
+    { key: "MOLD",        name: "Stochastic Mold",       pattern: "OO\nOO",                    patternLabel: "Growth", details: "A probabilistic automaton. There are no strict rules. Alive cells have a small chance to die, and dead cells have a chance to be born based on their neighbors. It perfectly mimics the creeping spread of mold or lichen." },
 ];
 
 export const LearnPage = ({ onClose, onTryPattern }) => {
+    // Dynamic import to get the rule info from the engine without circularly depending on it
+    const { AutomataEngine } = require('../engine/AutomataEngine');
+    
     return (
         <div className="learn-page">
-            {/* Sticky top bar */}
-            <header className="learn-topbar">
-                <button className="topbar-btn" onClick={onClose}>
-                    <ArrowLeft size={18} />
+            <div className="learn-topbar">
+                <button className="topbar-btn" onClick={onClose} title="Back to Lab" style={{marginRight: '1rem'}}>
+                    <Play size={18} style={{transform: 'rotate(180deg)'}}/>
                 </button>
                 <h1>AUTOMETA</h1>
-                <span>DOCUMENTATION</span>
-            </header>
+                <span>LAB</span>
+            </div>
 
             <div className="learn-body">
-                {/* Hero */}
-                <div className="learn-hero">
-                    <h2>THE MATHEMATICS<br/>OF EMERGENCE</h2>
-                    <p>
-                        Cellular automata are among the simplest possible models of computation — yet they produce patterns of extraordinary complexity. A grid of cells. A set of rules. And from nothing, life emerges.
-                    </p>
-                </div>
+                <section className="learn-hero">
+                    <h2>How does it work?</h2>
+                    <p>Autometa Lab is a cellular automata simulator. The universe consists of a vast, infinite grid of cells. Every generation, the cells live, die, or multiply based on a set of mathematical rules regarding their neighbors.</p>
+                </section>
 
-                {/* Step-by-step explanation */}
-                <h2 className="learn-heading">HOW IT WORKS</h2>
-                <div className="learn-steps">
+                <section className="learn-steps">
                     <div className="step">
                         <div className="step-number">1</div>
                         <div className="step-content">
-                            <h3>START WITH A GRID</h3>
-                            <p>
-                                Every cell in the grid is either <strong>alive</strong> (filled) or <strong>dead</strong> (empty). You begin with a random or hand-drawn pattern.
-                            </p>
+                            <h3>The Neighborhood</h3>
+                            <p>For standard rules, every cell looks at its 8 immediate neighbors (horizontal, vertical, and diagonal) to decide what to do next. Let's look at the center cell:</p>
                             <div className="step-diagram">
-                                <PatternDiagram patternString={"..O..\n.O.O.\nO...O\n.O.O.\n..O.."} />
+                                <MiniGrid matrix={[[1,0,0],[0,0,1],[0,0,0]]} centerStyle={true} />
+                                <div style={{display:'flex', flexDirection:'column', gap:'0.2rem', marginLeft:'1rem'}}>
+                                    <span style={{fontSize:'0.85rem'}}><strong>Alive neighbors: 2</strong></span>
+                                    <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>(Top-left and Right)</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -142,12 +88,21 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                     <div className="step">
                         <div className="step-number">2</div>
                         <div className="step-content">
-                            <h3>COUNT THE 8 NEIGHBORS</h3>
-                            <p>
-                                For every cell, count its <strong>8 surrounding neighbors</strong> (top, bottom, left, right, and 4 diagonals). The center cell (marked <strong>?</strong>) looks at the ring around it to decide its fate.
-                            </p>
+                            <h3>Surviving & Dying</h3>
+                            <p>In Conway's classic rules, an alive cell needs <strong>2 or 3</strong> neighbors to survive. Too few (isolation), it dies. Too many (overpopulation), it also dies.</p>
                             <div className="step-diagram">
-                                <NeighborDiagram />
+                                <div>
+                                    <MiniGrid matrix={[[1,0,0],[0,1,0],[0,0,0]]} />
+                                    <div className="step-caption">1 neighbor (Dies)</div>
+                                </div>
+                                <div>
+                                    <MiniGrid matrix={[[1,0,0],[0,1,1],[0,0,0]]} />
+                                    <div className="step-caption">2 neighbors (Lives)</div>
+                                </div>
+                                <div>
+                                    <MiniGrid matrix={[[1,1,1],[0,1,1],[0,0,0]]} />
+                                    <div className="step-caption">5 neighbors (Dies)</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -155,30 +110,26 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                     <div className="step">
                         <div className="step-number">3</div>
                         <div className="step-content">
-                            <h3>APPLY THE RULES</h3>
-                            <p>
-                                Based on the neighbor count, the cell lives, dies, or is born. In Conway's rules: a cell is <strong>born</strong> with exactly 3 neighbors, and <strong>survives</strong> with 2 or 3. All other cells die.
-                            </p>
-                            <BeforeAfterDiagram />
+                            <h3>Birth</h3>
+                            <p>If an empty (dead) space is surrounded by exactly <strong>3</strong> alive neighbors, a new cell is born there in the next generation. This simulates reproduction.</p>
+                            <div className="step-diagram">
+                                <div>
+                                    <MiniGrid matrix={[[1,1,0],[1,0,0],[0,0,0]]} />
+                                </div>
+                                <div className="step-arrow">→</div>
+                                <div>
+                                    <MiniGrid matrix={[[1,1,0],[1,1,0],[0,0,0]]} />
+                                </div>
+                            </div>
+                            <p style={{marginTop: '0.5rem', fontSize: '0.85rem', fontStyle: 'italic'}}>The center cell is born because it had 3 neighbors.</p>
                         </div>
                     </div>
+                </section>
 
-                    <div className="step">
-                        <div className="step-number">4</div>
-                        <div className="step-content">
-                            <h3>REPEAT FOREVER</h3>
-                            <p>
-                                Apply the rules to every cell simultaneously. The next generation replaces the current one. Simple rules, iterated infinitely, produce gliders, oscillators, spaceships, and chaos.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* All rules */}
-                <h2 className="learn-heading">RULE VARIATIONS ({RULE_DATA.length})</h2>
+                <h2 className="learn-heading">Rule Variations</h2>
                 <div className="learn-rules-grid">
-                    {RULE_DATA.map(rd => {
-                        const info = AutomataEngine.RULES[rd.key];
+                    {RULE_DATA.map((rd) => {
+                        const info = AutomataEngine.RULES[rd.key] || {};
                         return (
                             <div key={rd.key} className="learn-rule-card">
                                 <div>
@@ -197,7 +148,7 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                                     </button>
                                 </div>
                             </div>
-                        );
+                        )
                     })}
                 </div>
             </div>
