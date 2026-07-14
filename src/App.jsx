@@ -5,7 +5,8 @@ import { AutomataEngine } from './engine/AutomataEngine';
 import { 
     Play, Pause, Edit2, Eraser, SprayCan, Trash2, 
     Shuffle, BookOpen, Target, SkipForward, ChevronRight,
-    Activity, Users, Hash, RotateCcw, Smile, ZoomIn, ZoomOut
+    Activity, Users, Hash, RotateCcw, Smile, ZoomIn, ZoomOut,
+    Hand
 } from 'lucide-react';
 import './index.css';
 
@@ -88,7 +89,7 @@ function App() {
             <main className="main-area">
                 {/* Canvas */}
                 <div className="playground">
-                    <Canvas isPlaying={isPlaying} onStats={setStats} speedMultiplier={speedMultiplier} isCuteMode={isCuteMode} ref={canvasRef} />
+                    <Canvas isPlaying={isPlaying} onStats={setStats} speedMultiplier={speedMultiplier} isCuteMode={isCuteMode} activeBrush={activeBrush} ref={canvasRef} />
 
                     {/* Floating toolbar at bottom center */}
                     <div className="floating-toolbar">
@@ -109,6 +110,9 @@ function App() {
                             <Smile size={18} />
                         </button>
                         <div className="ftb-divider" />
+                        <button className={`ftb ${activeBrush === "PAN" ? 'active' : ''}`} onClick={() => handleBrushChange("PAN")} title="Pan">
+                            <Hand size={18} />
+                        </button>
                         <button className={`ftb ${activeBrush === "PENCIL" ? 'active' : ''}`} onClick={() => handleBrushChange("PENCIL")} title="Pencil">
                             <Edit2 size={18} />
                         </button>

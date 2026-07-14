@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react
 import rough from 'roughjs/bundled/rough.esm.js';
 import { AutomataEngine } from '../engine/AutomataEngine';
 
-export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isCuteMode = false }, ref) => {
+export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isCuteMode = false, activeBrush = "PENCIL" }, ref) => {
     const canvasRef = useRef(null);
     const engineRef = useRef(null);
     const reqRef = useRef(null);
@@ -305,9 +305,10 @@ export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isC
 
     const handlePointerDown = (e) => {
         if (!engineRef.current) return;
-        if (e.button === 1 || e.button === 2) {
+        if (e.button === 1 || e.button === 2 || activeBrush === "PAN") {
             isPanning.current = true;
             lastPanPos.current = [e.clientX, e.clientY];
+            if (canvasRef.current) canvasRef.current.classList.add('grabbing');
         } else {
             drawAtPoint(e);
         }
@@ -319,9 +320,14 @@ export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isC
             panX.current += e.clientX - lastPanPos.current[0];
             panY.current += e.clientY - lastPanPos.current[1];
             lastPanPos.current = [e.clientX, e.clientY];
-        } else if (e.buttons === 1) {
+        } else if (e.buttons === 1 && activeBrush !== "PAN") {
             drawAtPoint(e);
         }
+    };
+
+    const handlePointerUpOrOut = () => {
+        isPanning.current = false;
+        if (canvasRef.current) canvasRef.current.classList.remove('grabbing');
     };
 
     const handleWheel = (e) => {
@@ -345,11 +351,11 @@ export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isC
     return (
         <canvas
             ref={canvasRef}
-            style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none', cursor: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'%3E%3Cpath d='M22 4 L28 10 L14 24 L6 26 L8 18 Z' fill='white' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M18 8 L24 14' fill='none' stroke='black' stroke-width='2'/%3E%3Cpath d='M6 26 L10 22 M8 18 L12 22 M7 25 L9 21' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") 6 26, crosshair` }}
+            className={`autometa-canvas ${activeBrush === "PAN" ? "brush-pan" : ""}`}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
-            onPointerUp={() => { isPanning.current = false; }}
-            onPointerOut={() => { isPanning.current = false; }}
+            onPointerUp={handlePointerUpOrOut}
+            onPointerOut={handlePointerUpOrOut}
             onContextMenu={(e) => e.preventDefault()}
             onWheel={handleWheel}
         />
