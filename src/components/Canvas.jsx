@@ -296,7 +296,10 @@ export const Canvas = forwardRef(({ isPlaying, onStats, speedMultiplier = 1, isC
         } else if (brushType.current === "ERASER") {
             engineRef.current.setCell(gx, gy, 0);
         } else if (brushType.current === "SPRAY") {
-            engineRef.current.applySpray(gx, gy, Math.max(1, 3 / currentZoom), 0.35, 1);
+            // Radius relative to visible area: ~5% of viewport width in cell units
+            const visibleCellsX = canvas.width / (CELL_SIZE * currentZoom);
+            const sprayRadius = Math.max(2, Math.floor(visibleCellsX * 0.05));
+            engineRef.current.applySpray(gx, gy, sprayRadius, 0.4, 1);
         }
     };
 

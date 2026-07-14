@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, ArrowLeft, Zap, Cpu, Waves, Hexagon, Shuffle } from 'lucide-react';
+import { AutomataEngine } from '../engine/AutomataEngine';
 
-/* ─── Helper to render mini grids in instructions ─── */
-const MiniGrid = ({ matrix, centerStyle = false }) => {
-    return (
-        <div className="mini-grid">
-            {matrix.map((row, r) => (
-                <div key={r} className="mini-grid-row">
-                    {row.map((val, c) => (
-                        <div 
-                            key={c} 
-                            className={`mini-grid-cell ${val === 1 ? 'alive' : ''} ${centerStyle && r===1 && c===1 ? 'center' : ''}`}
-                        >
-                        </div>
-                    ))}
-                </div>
-            ))}
-        </div>
-    );
-};
+/* ─── Mini grid diagram ─── */
+const MiniGrid = ({ matrix }) => (
+    <div className="mini-grid">
+        {matrix.map((row, r) => (
+            <div key={r} className="mini-grid-row">
+                {row.map((val, c) => (
+                    <div key={c} className={`mini-grid-cell ${val === 2 ? 'center' : val === 1 ? 'alive' : ''}`} />
+                ))}
+            </div>
+        ))}
+    </div>
+);
 
-/* ─── Helper to render pattern diagrams ─── */
+/* ─── Pattern preview diagram ─── */
 const PatternDiagram = ({ patternString }) => {
     const rows = patternString.split('\n');
     return (
@@ -28,7 +23,7 @@ const PatternDiagram = ({ patternString }) => {
             {rows.map((row, r) => (
                 <div key={r} className="pattern-row">
                     {row.split('').map((char, c) => (
-                        <div key={c} className={`pattern-cell ${char === 'O' ? 'alive' : ''}`}></div>
+                        <div key={c} className={`pattern-cell ${char === 'O' ? 'alive' : ''}`} />
                     ))}
                 </div>
             ))}
@@ -36,50 +31,133 @@ const PatternDiagram = ({ patternString }) => {
     );
 };
 
-/* ─── Rule data with patterns ─── */
-const RULE_DATA = [
-    { key: "CONWAY",      name: "Conway's Game of Life", pattern: ".O.\n..O\nOOO",           patternLabel: "Glider", details: "Invented by John Conway in 1970, this is the most famous cellular automaton. It perfectly balances chaos and order, creating complex spaceships, oscillators, and stable forms. It is computationally Turing-complete." },
-    { key: "MAZE",        name: "Maze",                  pattern: "OOO",                       patternLabel: "Seed", details: "Cells survive very easily (1 to 5 neighbors) but are only born with exactly 3. This causes patterns to solidify into intricate, branching, crystalline mazes that expand until the grid is filled." },
+/* ─── Mode badge colors ─── */
+const MODE_META = {
+    BINARY:      { label: 'Binary',      color: '#6366f1', bg: 'rgba(99,102,241,0.1)',     icon: <Cpu size={12} /> },
+    MULTI_STATE: { label: 'Multi-State', color: '#ec4899', bg: 'rgba(236,72,153,0.1)',      icon: <Zap size={12} /> },
+    CONTINUOUS:  { label: 'Continuous',  color: '#10b981', bg: 'rgba(16,185,129,0.1)',      icon: <Waves size={12} /> },
+    HEXAGONAL:   { label: 'Hexagonal',   color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',      icon: <Hexagon size={12} /> },
+    STOCHASTIC:  { label: 'Stochastic',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',       icon: <Shuffle size={12} /> },
+};
 
-    // Advanced / Evolution
-    { key: "BRIANS_BRAIN",name: "Brian's Brain",         pattern: "O.O\n...\nO.O",             patternLabel: "Worms", details: "A 3-state automaton (Alive, Dying, Dead). A cell goes from Alive to Dying, then Dying to Dead. This forces movement in one direction, creating intricate neural pathways and crawling worms." },
-    { key: "CYCLIC",      name: "Cyclic Spirals",        pattern: "OOO\nO.O\nOOO",             patternLabel: "Spirals", details: "Features 16 distinct states! A cell only advances to the next state if it touches a neighbor that is already in the next state. The result is a mesmerizing explosion of colorful, swirling psychedelic spirals." },
-    { key: "SMOOTH_LIFE", name: "Smooth Organic",        pattern: "OOO\nOOO\nOOO",             patternLabel: "Amoebas", details: "A massive leap! This rule operates in the continuous floating-point domain (0.0 to 1.0) rather than binary. Cells blend, blur, and divide like fluid microscopic amoebas in a primordial soup." },
-    { key: "HEX_LIFE",    name: "Hexagonal Life",        pattern: ".OO\nO.O\n.OO",             patternLabel: "Snowflake", details: "Standard life rules, but evaluated on a staggered honeycomb grid. Without the sharp 90-degree bias of a square grid, the structures that grow look far more organic and crystal-like." },
-    { key: "MOLD",        name: "Stochastic Mold",       pattern: "OO\nOO",                    patternLabel: "Growth", details: "A probabilistic automaton. There are no strict rules. Alive cells have a small chance to die, and dead cells have a chance to be born based on their neighbors. It perfectly mimics the creeping spread of mold or lichen." },
+/* ─── Rule cards data ─── */
+const RULE_DATA = [
+    {
+        key: 'CONWAY',
+        name: "Conway's Life",
+        pattern: '.O.\n..O\nOOO',
+        patternLabel: 'Glider',
+        details: 'The foundational cellular automaton invented by John Conway in 1970. Simple rules give rise to gliders, oscillators, spaceships, and patterns of startling complexity. It is provably Turing-complete.'
+    },
+    {
+        key: 'MAZE',
+        name: 'Maze',
+        pattern: 'OOO',
+        patternLabel: 'Seed',
+        details: 'Cells survive with 1–5 neighbors (very easy) but are born only with exactly 3. Patterns crystallize outward into dense, branching labyrinthine structures that fill the entire grid.'
+    },
+    {
+        key: 'BRIANS_BRAIN',
+        name: "Brian's Brain",
+        pattern: 'O.O\n...\nO.O',
+        patternLabel: 'Neural seed',
+        details: 'A 3-state system: Alive → Dying → Dead. Because a dying cell cannot immediately become alive again, signals can only travel forward. The result is endless crawling worms and neural pulse waves.'
+    },
+    {
+        key: 'CYCLIC',
+        name: 'Cyclic Spirals',
+        pattern: 'OOO\nO.O\nOOO',
+        patternLabel: 'Spirals',
+        details: '16 distinct color states cycle through the grid. A cell advances only if a neighbor is already in the next state. From random noise, vast multi-armed spirals self-organize and rotate hypnotically.'
+    },
+    {
+        key: 'SMOOTH_LIFE',
+        name: 'Smooth Organic',
+        pattern: 'OOO\nOOO\nOOO',
+        patternLabel: 'Amoeba seed',
+        details: 'Operates in the continuous floating-point domain (0.0–1.0). Cells have fractional vitality that bleeds and bleeds into neighbors. Blob-like organisms emerge, pulse, divide, and swim like microbes under glass.'
+    },
+    {
+        key: 'HEX_LIFE',
+        name: 'Hexagonal Life',
+        pattern: '.OO\nO.O\n.OO',
+        patternLabel: 'Snowflake',
+        details: "Standard birth/survival rules evaluated on a staggered honeycomb (6 neighbors instead of 8). The grid's 6-fold symmetry forces growth into organic snowflake and coral-like crystal patterns."
+    },
+    {
+        key: 'MOLD',
+        name: 'Stochastic Mold',
+        pattern: 'OO\nOO',
+        patternLabel: 'Growth core',
+        details: 'Pure probability replaces strict rules. Alive cells have a 5% random chance to die, and dead cells have a % chance to be born proportional to their neighbor count. The result is fuzzy, creeping growth that perfectly mimics lichen or mold on a petri dish.'
+    },
 ];
 
+/* ─── Interactive card ─── */
+const RuleCard = ({ rd, onTryPattern }) => {
+    const info = AutomataEngine.RULES[rd.key] || {};
+    const mode = info.mode || 'BINARY';
+    const meta = MODE_META[mode] || MODE_META.BINARY;
+
+    return (
+        <div className="learn-rule-card" style={{ '--card-accent': meta.color }}>
+            <div className="lrc-header">
+                <div className="lrc-title-row">
+                    <h3 className="lrc-name">{rd.name}</h3>
+                    <span className="lrc-mode-badge" style={{ color: meta.color, background: meta.bg }}>
+                        {meta.icon}&nbsp;{meta.label}
+                    </span>
+                </div>
+                <span className="rule-notation">{info.label}</span>
+            </div>
+            <p className="lrc-desc">{rd.details}</p>
+            <div className="lrc-footer">
+                <div className="lrc-pattern">
+                    <PatternDiagram patternString={rd.pattern} />
+                    <span className="lrc-pattern-label">{rd.patternLabel}</span>
+                </div>
+                <button className="try-btn" onClick={() => onTryPattern(rd.key, rd.pattern)}>
+                    <Play size={13} /> Try it
+                </button>
+            </div>
+        </div>
+    );
+};
+
+/* ─── Main page ─── */
 export const LearnPage = ({ onClose, onTryPattern }) => {
-    // Dynamic import to get the rule info from the engine without circularly depending on it
-    const { AutomataEngine } = require('../engine/AutomataEngine');
-    
     return (
         <div className="learn-page">
+            {/* Sticky top bar */}
             <div className="learn-topbar">
-                <button className="topbar-btn" onClick={onClose} title="Back to Lab" style={{marginRight: '1rem'}}>
-                    <Play size={18} style={{transform: 'rotate(180deg)'}}/>
+                <button className="topbar-btn" onClick={onClose} title="Back to Lab">
+                    <ArrowLeft size={18} />
                 </button>
                 <h1>AUTOMETA</h1>
-                <span>LAB</span>
+                <span className="logo-sub">LAB&nbsp;/&nbsp;DOCS</span>
             </div>
 
             <div className="learn-body">
+
+                {/* ── Hero ── */}
                 <section className="learn-hero">
-                    <h2>How does it work?</h2>
-                    <p>Autometa Lab is a cellular automata simulator. The universe consists of a vast, infinite grid of cells. Every generation, the cells live, die, or multiply based on a set of mathematical rules regarding their neighbors.</p>
+                    <div className="learn-hero-tag">FIELD GUIDE</div>
+                    <h2>How Cellular Automata Work</h2>
+                    <p>Autometa Lab simulates mathematical universes where cells live and die by ruthless rules. Each generation, every cell on the grid surveys its neighbors and decides its fate — birth, survival, or death.</p>
                 </section>
 
+                {/* ── Steps ── */}
                 <section className="learn-steps">
                     <div className="step">
                         <div className="step-number">1</div>
                         <div className="step-content">
-                            <h3>The Neighborhood</h3>
-                            <p>For standard rules, every cell looks at its 8 immediate neighbors (horizontal, vertical, and diagonal) to decide what to do next. Let's look at the center cell:</p>
+                            <h3>Every cell has 8 neighbors</h3>
+                            <p>For most rules, each cell checks all 8 surrounding cells — up, down, left, right, and all four diagonals. These are counted to determine the next state.</p>
                             <div className="step-diagram">
-                                <MiniGrid matrix={[[1,0,0],[0,0,1],[0,0,0]]} centerStyle={true} />
-                                <div style={{display:'flex', flexDirection:'column', gap:'0.2rem', marginLeft:'1rem'}}>
-                                    <span style={{fontSize:'0.85rem'}}><strong>Alive neighbors: 2</strong></span>
-                                    <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>(Top-left and Right)</span>
+                                <MiniGrid matrix={[[1,0,1],[0,2,1],[1,0,0]]} />
+                                <div style={{ display:'flex', flexDirection:'column', gap:'0.2rem', marginLeft:'1rem' }}>
+                                    <span style={{ fontSize:'0.85rem' }}><strong>4 alive neighbors</strong></span>
+                                    <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>Red = cell being evaluated</span>
                                 </div>
                             </div>
                         </div>
@@ -88,20 +166,20 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                     <div className="step">
                         <div className="step-number">2</div>
                         <div className="step-content">
-                            <h3>Surviving & Dying</h3>
-                            <p>In Conway's classic rules, an alive cell needs <strong>2 or 3</strong> neighbors to survive. Too few (isolation), it dies. Too many (overpopulation), it also dies.</p>
+                            <h3>Survive, die, or be born</h3>
+                            <p>In Conway's rules: a cell survives with <strong>2 or 3</strong> neighbors. A dead cell is born with exactly <strong>3</strong>. Any other count means death or stasis.</p>
                             <div className="step-diagram">
                                 <div>
                                     <MiniGrid matrix={[[1,0,0],[0,1,0],[0,0,0]]} />
-                                    <div className="step-caption">1 neighbor (Dies)</div>
+                                    <div className="step-caption">1 neighbor → Dies</div>
                                 </div>
                                 <div>
                                     <MiniGrid matrix={[[1,0,0],[0,1,1],[0,0,0]]} />
-                                    <div className="step-caption">2 neighbors (Lives)</div>
+                                    <div className="step-caption">2 neighbors → Lives</div>
                                 </div>
                                 <div>
-                                    <MiniGrid matrix={[[1,1,1],[0,1,1],[0,0,0]]} />
-                                    <div className="step-caption">5 neighbors (Dies)</div>
+                                    <MiniGrid matrix={[[1,1,0],[1,0,0],[0,0,0]]} />
+                                    <div className="step-caption">3 neighbors → Born!</div>
                                 </div>
                             </div>
                         </div>
@@ -110,47 +188,64 @@ export const LearnPage = ({ onClose, onTryPattern }) => {
                     <div className="step">
                         <div className="step-number">3</div>
                         <div className="step-content">
-                            <h3>Birth</h3>
-                            <p>If an empty (dead) space is surrounded by exactly <strong>3</strong> alive neighbors, a new cell is born there in the next generation. This simulates reproduction.</p>
-                            <div className="step-diagram">
-                                <div>
-                                    <MiniGrid matrix={[[1,1,0],[1,0,0],[0,0,0]]} />
-                                </div>
-                                <div className="step-arrow">→</div>
-                                <div>
-                                    <MiniGrid matrix={[[1,1,0],[1,1,0],[0,0,0]]} />
-                                </div>
-                            </div>
-                            <p style={{marginTop: '0.5rem', fontSize: '0.85rem', fontStyle: 'italic'}}>The center cell is born because it had 3 neighbors.</p>
+                            <h3>Beyond binary — multi-state &amp; continuous</h3>
+                            <p>Advanced rules break the binary Alive/Dead model. Cells can hold <strong>16 distinct states</strong> (Cyclic Spirals), <strong>fractional values</strong> (Smooth Organic), or be governed by <strong>probability</strong> (Stochastic Mold) — producing radically different behaviors.</p>
                         </div>
                     </div>
                 </section>
 
-                <h2 className="learn-heading">Rule Variations</h2>
-                <div className="learn-rules-grid">
-                    {RULE_DATA.map((rd) => {
-                        const info = AutomataEngine.RULES[rd.key] || {};
-                        return (
-                            <div key={rd.key} className="learn-rule-card">
+                {/* ── Mode Legend ── */}
+                <section className="learn-mode-legend">
+                    <h2 className="learn-heading">Rule Paradigms</h2>
+                    <div className="mode-legend-grid">
+                        {Object.entries(MODE_META).map(([key, m]) => (
+                            <div key={key} className="mode-legend-item" style={{ borderColor: m.color + '44', background: m.bg }}>
+                                <span className="mode-legend-icon" style={{ color: m.color }}>{m.icon}</span>
                                 <div>
-                                    <h3>{rd.name}</h3>
-                                    <span className="rule-notation">{info.label}</span>
-                                </div>
-                                <p style={{ color: 'var(--text)', fontWeight: 600 }}>{info.desc}</p>
-                                <p style={{ fontSize: '0.85rem', lineHeight: '1.6', marginTop: '-0.25rem' }}>{rd.details}</p>
-                                <div className="card-bottom">
-                                    <div>
-                                        <PatternDiagram patternString={rd.pattern} />
-                                        <div className="step-caption">{rd.patternLabel}</div>
+                                    <div className="mode-legend-name" style={{ color: m.color }}>{m.label}</div>
+                                    <div className="mode-legend-desc">
+                                        {key === 'BINARY'      && 'Classic 0/1 cells, Moore neighborhood, deterministic rules.'}
+                                        {key === 'MULTI_STATE' && 'Cells cycle through N states; creates directional flow & spirals.'}
+                                        {key === 'CONTINUOUS'  && 'Cells hold float values 0–1; produces fluid, organic blobs.'}
+                                        {key === 'HEXAGONAL'   && '6-neighbor honeycomb grid; forces organic crystal symmetry.'}
+                                        {key === 'STOCHASTIC'  && 'Probabilistic rules; randomness drives fuzzy, organic spread.'}
                                     </div>
-                                    <button className="try-btn" onClick={() => onTryPattern(rd.key, rd.pattern)}>
-                                        <Play size={14} /> TRY IT
-                                    </button>
                                 </div>
                             </div>
-                        )
-                    })}
+                        ))}
+                    </div>
+                </section>
+
+                {/* ── Rule Cards ── */}
+                <h2 className="learn-heading">All Rules</h2>
+                <div className="learn-rules-grid">
+                    {RULE_DATA.map(rd => <RuleCard key={rd.key} rd={rd} onTryPattern={onTryPattern} />)}
                 </div>
+
+                {/* ── Controls cheatsheet ── */}
+                <section className="learn-controls">
+                    <h2 className="learn-heading">Controls</h2>
+                    <div className="controls-grid">
+                        {[
+                            ['Left click / drag', 'Draw cells'],
+                            ['Right click / drag', 'Pan the canvas'],
+                            ['Middle click / drag', 'Pan the canvas'],
+                            ['Scroll wheel', 'Zoom in / out'],
+                            ['▶ / ⏸', 'Play / Pause simulation'],
+                            ['↺', 'Rewind one saved snapshot'],
+                            ['⏭', 'Step forward one generation'],
+                            ['✏ / 💨 / ✕', 'Pencil / Spray / Eraser brush'],
+                            ['😊', 'Toggle Cute Mode'],
+                            ['0.5× / 1× / 2× / 4×', 'Simulation speed'],
+                        ].map(([key, val]) => (
+                            <div key={key} className="control-row">
+                                <span className="control-key">{key}</span>
+                                <span className="control-val">{val}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
             </div>
         </div>
     );
